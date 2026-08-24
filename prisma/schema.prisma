@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MailFolder {
+  INBOX
+  ARCHIVE
+  SPAM
+  TRASH
+}
+
+enum MailSource {
+  RECEIVED
+  SENT
+}
+
+model EmailState {
+  id        String       @id @default(cuid())
+  emailId   String
+  source    MailSource   @default(RECEIVED)
+  folder    MailFolder   @default(INBOX)
+  isRead    Boolean      @default(false)
+  starred   Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  labels    EmailLabel[]
+
+  @@unique([emailId, source])
+  @@index([folder, updatedAt])
+  @@index([isRead, updatedAt])
+  @@index([starred, updatedAt])
+}
+
+model Label {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  color     String       @default("#7c6cf2")
+  createdAt DateTime     @default(now())
+  emails    EmailLabel[]
+}
+
+model EmailLabel {
+  emailStateId String
+  labelId      String
+  emailState   EmailState @relation(fields: [emailStateId], references: [id], onDelete: Cascade)
+  label        Label      @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([emailStateId, labelId])
+  @@index([labelId])
+}
+
+model Draft {
+  id        String   @id @default(cuid())
+  to        String   @default("")
+  subject   String   @default("")
+  message   String   @default("")
+  replyToId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}
